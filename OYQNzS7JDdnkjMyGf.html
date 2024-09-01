@@ -1,0 +1,216 @@
+<html><head><base href="https://websim.example.com/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Distribución de Ganancias entre Artistas y Estudio</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+    }
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+    }
+    .container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .artist-input {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .artist-input input {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    button {
+        background-color: #3498db;
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    button:hover {
+        background-color: #2980b9;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+    }
+    th {
+        background-color: #3498db;
+        color: #fff;
+    }
+    .warning {
+        color: #e74c3c;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+    #total-income {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-top: 20px;
+    }
+    tfoot td {
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora de Distribución de Ganancias</h1>
+        
+        <div id="artists-container"></div>
+        
+        <button onclick="addArtist()">Agregar Artista</button>
+        
+        <div id="total-income">Ingreso Total: $0.00</div>
+        
+        <table id="results-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Ingresos ($)</th>
+                    <th>Porcentaje</th>
+                    <th>Ganancia Artista ($)</th>
+                    <th>Porcentaje Estudio</th>
+                    <th>Ganancia Estudio ($)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <td><strong>Totales</strong></td>
+                    <td id="total-income-row"></td>
+                    <td></td>
+                    <td id="total-artist-gain"></td>
+                    <td></td>
+                    <td id="studio-total"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <script>
+        let artists = [
+            { name: 'Camilo', income: 37750, percentage: 65 },
+            { name: 'Aramayo', income: 35900, percentage: 65 },
+            { name: 'Nicdas', income: 25300, percentage: 65 },
+            { name: 'Brum Allen', income: 3300, percentage: 65 },
+            { name: 'Cesar Ember', income: 29200, percentage: 65 },
+            { name: 'Firas Pablo', income: 9700, percentage: 65 },
+            { name: 'Gomez Cesar', income: 28800, percentage: 65 },
+            { name: 'Guerrero Denisse', income: 18600, percentage: 65 },
+            { name: 'Makishi', income: 18600, percentage: 65 },
+            { name: 'Muñoz', income: 9750, percentage: 65 },
+            { name: 'Hans', income: 5000, percentage: 65 },
+            { name: 'Emerson', income: 37200, percentage: 65 },
+            { name: 'Rod Adrian', income: 11400, percentage: 65 },
+            { name: 'Roberto', income: 37600, percentage: 65 },
+            { name: 'J Luis', income: 26550, percentage: 65 },
+            { name: 'Agus', income: 31100, percentage: 65 }
+        ];
+
+        function addArtist() {
+            const newArtist = { name: '', income: 0, percentage: 65 };
+            artists.push(newArtist);
+            renderArtists();
+            calculate();
+        }
+
+        function removeArtist(index) {
+            artists.splice(index, 1);
+            renderArtists();
+            calculate();
+        }
+
+        function renderArtists() {
+            const container = document.getElementById('artists-container');
+            container.innerHTML = '';
+            artists.forEach((artist, index) => {
+                const div = document.createElement('div');
+                div.className = 'artist-input';
+                div.innerHTML = `
+                    <input type="text" placeholder="Nombre" value="${artist.name}" onchange="updateArtist(${index}, 'name', this.value)">
+                    <input type="number" min="0" step="0.01" placeholder="Ingresos ($)" value="${artist.income}" onchange="updateArtist(${index}, 'income', this.value)">
+                    <input type="number" min="0" max="100" step="0.01" placeholder="Porcentaje (%)" value="${artist.percentage}" onchange="updateArtist(${index}, 'percentage', this.value)">
+                    <button onclick="removeArtist(${index})">Eliminar</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateArtist(index, field, value) {
+            artists[index][field] = field === 'name' ? value : parseFloat(value) || 0;
+            calculate();
+        }
+
+        function calculate() {
+            const tbody = document.querySelector('#results-table tbody');
+            tbody.innerHTML = '';
+            
+            let totalIncome = 0;
+            let totalStudioGain = 0;
+            let totalArtistGain = 0;
+
+            artists.forEach(artist => {
+                totalIncome += artist.income;
+
+                const artistGain = (artist.income * artist.percentage) / 100;
+                const studioPercentage = Math.max(0, 100 - artist.percentage);
+                const studioGain = artist.income - artistGain;
+
+                totalStudioGain += studioGain;
+                totalArtistGain += artistGain;
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${artist.name}</td>
+                    <td>$${artist.income.toFixed(2)}</td>
+                    <td>${artist.percentage.toFixed(2)}%</td>
+                    <td>$${artistGain.toFixed(2)}</td>
+                    <td>${studioPercentage.toFixed(2)}%</td>
+                    <td>$${studioGain.toFixed(2)}</td>
+                `;
+            });
+
+            document.getElementById('total-income').textContent = `Ingreso Total: $${totalIncome.toFixed(2)}`;
+
+            const totalIncomeRowElement = document.getElementById('total-income-row');
+            totalIncomeRowElement.textContent = `$${totalIncome.toFixed(2)}`;
+
+            const totalArtistGainElement = document.getElementById('total-artist-gain');
+            totalArtistGainElement.textContent = `$${totalArtistGain.toFixed(2)}`;
+
+            const studioTotalElement = document.getElementById('studio-total');
+            const studioTotalPercentage = (totalStudioGain / totalIncome) * 100 || 0;
+            studioTotalElement.innerHTML = `
+                ${studioTotalPercentage.toFixed(2)}%<br>
+                $${totalStudioGain.toFixed(2)}
+            `;
+        }
+
+        // Inicializar con los artistas predefinidos
+        renderArtists();
+        calculate();
+    </script>
+</body>
+</html>
